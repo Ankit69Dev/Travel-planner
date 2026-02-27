@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { pilgrimagePlaces, getAllReligions, getPilgrimagesByReligion } from "@/lib/pilgrimageData";
+import Loader from "@/components/ui/loader";
 
 export default function Pilgrimage() {
   const { data: session, status } = useSession();
@@ -26,23 +27,23 @@ export default function Pilgrimage() {
       : getPilgrimagesByReligion(selectedReligion);
 
   const planTrip = (place: any) => {
-  // Store selected pilgrimage place in sessionStorage
+
   sessionStorage.setItem("pilgrimageDestination", JSON.stringify({
-    name: place.location.split(",")[0].trim(), // Extract city name
+    name: place.location.split(",")[0].trim(), 
     displayName: place.location,
     lat: place.lat,
     lng: place.lng,
     country: "India",
   }));
   
-  // Navigate to dashboard with pilgrimage flag
+  
   router.push("/dashboard?mode=pilgrimage");
 };
 
   if (status === "loading") {
     return (
-      <div className="flex items-center justify-center h-screen bg-black text-purple-600 text-4xl">
-        Loading...
+      <div>
+        <Loader/>
       </div>
     );
   }

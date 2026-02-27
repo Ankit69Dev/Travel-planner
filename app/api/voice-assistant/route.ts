@@ -5,7 +5,7 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY!,
 });
 
-const stageQuestions: { [key: number]: string } = {
+const stageQuestionsHindi: { [key: number]: string } = {
   0: "कृपया मुझे बताएं कि आप कहाँ से यात्रा शुरू करना चाहते हैं?",
   1: "बहुत अच्छा! अब मुझे बताएं कि आप कहाँ जाना चाहते हैं?",
   2: "शानदार! अब मुझे यात्रा की तारीख बताएं। आप कब जाना चाहते हैं?",
@@ -14,14 +14,25 @@ const stageQuestions: { [key: number]: string } = {
   5: "बढ़िया! आप किस परिवहन से यात्रा करना चाहते हैं? बस या ट्रेन?",
 };
 
+const stageQuestionsEnglish: { [key: number]: string } = {
+  0: "Please tell me where you're starting your journey from?",
+  1: "Great! Now tell me where you want to go?",
+  2: "Awesome! When do you want to travel? Please tell me the dates.",
+  3: "Perfect! How many travelers? Solo, duo, or group?",
+  4: "Got it! What's your budget? Low, moderate, or high?",
+  5: "Excellent! Which transport mode? Bus or train?",
+};
+
 export async function POST(request: NextRequest) {
   try {
-    const { input, stage, collectedData } = await request.json();
+    const { input, stage, collectedData, language = "hindi" } = await request.json();
 
-    console.log(`🎤 Stage ${stage}: Processing input:`, input);
+    console.log(`🎤 Stage ${stage}: Processing input in ${language}:`, input);
 
-    // Use Groq AI to extract information from Hindi voice input
-    const extractionPrompt = `You are a Hindi travel assistant. Extract travel information from the user's Hindi input.
+    const stageQuestions = language === "hindi" ? stageQuestionsHindi : stageQuestionsEnglish;
+    const systemLanguage = language === "hindi" ? "Hindi" : "English";
+
+    const extractionPrompt = `You are a ${systemLanguage} travel assistant. Extract travel information from the user's ${systemLanguage} input.
 
 Current stage: ${stage}
 Stage descriptions:
@@ -32,7 +43,7 @@ Stage descriptions:
 4 = Budget (Low/Moderate/High)
 5 = Transport mode (Bus/Train)
 
-User said (in Hindi): "${input}"
+User said (in ${systemLanguage}): "${input}"
 
 Already collected data: ${JSON.stringify(collectedData)}
 
@@ -47,18 +58,20 @@ Extract the relevant information for stage ${stage} and return a JSON response:
     // Stage 4: "budget": "Low"/"Moderate"/"High"
     // Stage 5: "transport": "Bus"/"Train"
   },
-  "response": "A natural Hindi response confirming what you understood",
+  "response": "A natural ${systemLanguage} response confirming what you understood",
   "nextStage": ${stage + 1},
   "complete": ${stage >= 5}
 }
 
-IMPORTANT: Return ONLY valid JSON, no extra text.`;
+IMPORTANT: 
+- Respond ONLY in ${systemLanguage}
+- Return ONLY valid JSON, no extra text.`;
 
     const completion = await groq.chat.completions.create({
       messages: [
         {
           role: "system",
-          content: "You are a helpful Hindi travel assistant that extracts travel information. Always respond in Hindi and return valid JSON.",
+          content: `You are a helpful ${systemLanguage} travel assistant that extracts travel information. Always respond in ${systemLanguage} and return valid JSON.`,
         },
         {
           role: "user",
@@ -77,18 +90,18 @@ IMPORTANT: Return ONLY valid JSON, no extra text.`;
 
     const parsedResponse = JSON.parse(responseText);
 
-    // Merge extracted data with collected data
     const updatedData = {
       ...collectedData,
       ...parsedResponse.extractedData,
     };
 
-    // If complete, add the next question, otherwise ask the next stage question
     let finalResponse = parsedResponse.response;
     if (!parsedResponse.complete && stageQuestions[parsedResponse.nextStage]) {
       finalResponse += " " + stageQuestions[parsedResponse.nextStage];
     } else if (parsedResponse.complete) {
-      finalResponse += " धन्यवाद! अब मैं आपके लिए यात्रा योजना तैयार कर रहा हूँ...";
+      finalResponse += language === "hindi"
+        ? " धन्यवाद! अब मैं आपके लिए यात्रा योजना तैयार कर रहा हूँ..."
+        : " Thank you! Now I'm preparing your travel plan...";
     }
 
     return NextResponse.json({
@@ -104,7 +117,7 @@ IMPORTANT: Return ONLY valid JSON, no extra text.`;
     return NextResponse.json(
       {
         success: false,
-        response: "क्षमा करें, मुझे समझने में कुछ समस्या हुई। कृपया फिर से कोशिश करें।",
+        response: "Sorry, I couldn't understand. Please try again.",
         error: error.message,
       },
       { status: 500 }

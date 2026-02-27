@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/buttonprimary";
 import { useState, useEffect } from "react";
 const menuOptions = [
   { name: "Dashboard", path: "/dashboard" },
-  { name: "Pilgrimage", path: "/pilgrimage" },
-  { name: "Profile", path: "/profile" }
+  { name: "Pilgrimage", path: "/pil" },
+  { name: "Profile", path: "/pro" }
 ];
 
 export default function DashboardHeader() {
