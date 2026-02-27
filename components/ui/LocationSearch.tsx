@@ -25,7 +25,7 @@ export default function LocationSearch({
   const [results, setResults] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const timeout = useRef<NodeJS.Timeout>();
+  const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync internal state with external value prop
   useEffect(() => {

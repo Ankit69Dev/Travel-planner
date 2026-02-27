@@ -11,8 +11,8 @@ const menuOptions = [
   { name: "Dashboard", path: "/dashboard" },
   { name: "Pilgrimage", path: "/pilgrimage" },
   { name: "Location Finder", path: "/locationfinder"},
-  { name: "Profile", path: "/profile" }
-  
+  { name: "Profile", path: "/profile" },
+  { name: "Explore", path: "/explore" },
 
 ];
 
