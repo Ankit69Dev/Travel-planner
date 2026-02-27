@@ -12,6 +12,7 @@ import { generateTripPDF } from "@/utils/pdfGenerator";
 import Link from "next/link";
 import VoiceAssistant from "@/components/ui/VoiceAssistant";
 import { getEmergencyContactsAI, getCrowdPredictionAI } from "@/lib/emergencyContacts";
+import Loader from "@/components/ui/loader";
 
 const LocationMap = dynamic(() => import("@/components/ui/LocationMap"), {
   ssr: false,
@@ -36,8 +37,7 @@ const [loadingEmergency, setLoadingEmergency] = useState(false);
   const [additionalDestinations, setAdditionalDestinations] = useState<any[]>(
     [],
   );
-  const [canAddMore, setCanAddMore] = useState(2); // Can add 2 more destinations
-// Replace the old hardcoded notifications state with this
+  const [canAddMore, setCanAddMore] = useState(2);
 const [notifications, setNotifications] = useState<any[]>([]);
 const [notificationOpen, setNotificationOpen] = useState(false);
 const [loadingNotifications, setLoadingNotifications] = useState(false);
@@ -86,7 +86,7 @@ const [loadingNotifications, setLoadingNotifications] = useState(false);
     }
   }, [searchParams]);
 
-  // Fetch AI-powered notifications on component mount
+  
 useEffect(() => {
   fetchNotifications();
 }, []);
@@ -95,10 +95,10 @@ const fetchNotifications = async () => {
   setLoadingNotifications(true);
   
   try {
-    // You can use user's location from session or default to "India"
+ 
     const userLocation = session?.user?.email?.includes("@") 
       ? "India" 
-      : "India"; // In future, you can get actual location from user profile
+      : "India"; 
 
     const response = await fetch("/api/notifications", {
       method: "POST",
@@ -118,7 +118,7 @@ const fetchNotifications = async () => {
   }
 };
 
-  // Fetch emergency info and crowd prediction when itinerary is generated
+  
 useEffect(() => {
   if (itinerary) {
     fetchEmergencyData();
@@ -131,7 +131,7 @@ const fetchEmergencyData = async () => {
   setLoadingEmergency(true);
   
   try {
-    // Fetch both in parallel
+ 
     const [contacts, crowd] = await Promise.all([
       getEmergencyContactsAI(itinerary.destination),
       getCrowdPredictionAI(itinerary.destination, tripData.startDate, tripData.endDate),
@@ -191,7 +191,7 @@ const fetchEmergencyData = async () => {
         }
       }
 
-      // Geocode destination
+
       if (voiceData.destination) {
         const destResponse = await fetch(
           `https://api.geoapify.com/v1/geocode/search?text=${voiceData.destination}&apiKey=${process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY}&limit=1&format=json`,
@@ -211,7 +211,7 @@ const fetchEmergencyData = async () => {
         }
       }
 
-      // Set other data
+
       setTripData((prev) => ({
         ...prev,
         startDate: voiceData.startDate || prev.startDate,
@@ -221,7 +221,6 @@ const fetchEmergencyData = async () => {
         transport: voiceData.transport || prev.transport,
       }));
 
-      // Auto-generate itinerary after a short delay
       setTimeout(() => {
         if (
           voiceData.startLocation &&
@@ -345,8 +344,8 @@ const fetchEmergencyData = async () => {
 
   if (status === "loading") {
     return (
-      <div className="flex items-center text-4xl justify-center h-screen bg-black text-purple-600">
-        Loading...
+      <div className="items-center">
+        <Loader/>
       </div>
     );
   }
@@ -397,11 +396,11 @@ const fetchEmergencyData = async () => {
                 </h3>
                 <div className="space-y-1">
                   <p className="text-white/90 text-lg font-medium">
-                    English:{" "}
+                    
                     <span className="font-bold">Just say it. AI plans it.</span>
                   </p>
                   <p className="text-white/90 text-lg font-medium">
-                    हिंदी:{" "}
+                    
                     <span className="font-bold">
                       बस बोलिए। AI योजना बना देगा।
                     </span>

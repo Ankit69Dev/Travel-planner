@@ -9,8 +9,6 @@ export async function POST(request: NextRequest) {
   try {
     const { userLocation } = await request.json();
 
-    console.log("🔔 Generating notifications for location:", userLocation);
-
     const currentDate = new Date();
     const nextThreeMonths = new Date();
     nextThreeMonths.setMonth(currentDate.getMonth() + 3);
@@ -63,7 +61,7 @@ IMPORTANT: Return ONLY valid JSON array, no extra text.`;
     let responseText = completion.choices[0].message.content || "";
     responseText = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
 
-    console.log("🔔 Notifications response:", responseText);
+    
 
     const notifications = JSON.parse(responseText);
 
@@ -74,7 +72,6 @@ IMPORTANT: Return ONLY valid JSON array, no extra text.`;
   } catch (error: any) {
     console.error("Notifications API error:", error);
     
-    // Fallback notifications
     return NextResponse.json(
       {
         success: true,
