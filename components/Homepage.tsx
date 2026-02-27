@@ -117,21 +117,15 @@ function Homepage() {
             {[
               {
                 title: "Smart Travel, Simplified",
-                desc: `Plan personalized trips in seconds with AI-powered recommendations.
-Get optimized itineraries based on your preferences and budget.
-Enjoy stress-free travel planning from start to finish.`,
+                desc: `We make your trips smarter with the power of AI. Our smart trip planner uses intelligent technology to create personalized itineraries, suggest the best destinations, and optimize your travel plans effortlessly. Whether it’s a weekend getaway or a long vacation, we help you travel better, faster, and stress free.`,
               },
               {
-                title: "Your AI Travel Companion",
-                desc: `Discover destinations tailored to your interests and schedule.
-Receive intelligent suggestions for attractions, food, and activities.
-Travel confidently with smart, real-time planning support.`,
+                title: "Voice AI Travel Assistant",
+                desc: `Just speak, and we’ll handle the rest! Our smart Voice AI Assistant listens to your travel plans, understands where you want to go, how many days you’re planning, and fills in all the details automatically. Fast, easy, and now available in Hindi making trip planning smoother than ever.`,
               },
               {
-                title: "Plan Less, Explore More",
-                desc: `Let AI handle research and itinerary building effortlessly.
-Create seamless travel plans with just a few clicks.
-Spend less time planning and more time making memories.`,
+                title: "One-Click Spiritual Destinations",
+                desc: `Planning a religious trip has never been easier. Choose your faith, tap once, and your destination is instantly set with the most popular sacred places — no manual search needed. Fast, simple, and designed to make your spiritual journey effortless`,
               },
             ].map((item, index) => (
               <div
@@ -155,9 +149,8 @@ Spend less time planning and more time making memories.`,
             <h2 className="text-3xl font-bold mb-8 text-purple-400 tracking-widest">
               HOW IT WORKS
             </h2>
-            <p className="text-gray-300 leading-7">
-              An AI smart trip planner which makes traveling easier and more
-              enjoyable by organizing everything in one place.
+            <p className="text-gray-300 text-xl leading-7">
+              Our Smart Trip Planner makes travel effortless with the power of AI. Simply speak your travel plans to our Voice AI Assistant now available in Hindi and it automatically fills in your destination, trip duration, and preferences in seconds. You can also select one-click preset religious destinations to instantly plan your spiritual journey without manual entry. With intelligent AI-powered itinerary generation, we create personalized, smart travel plans tailored just for you making every trip faster, easier, and completely stress-free.
             </p>
           </div>
         </section>

@@ -16,6 +16,7 @@ export default function ConditionalHeader() {
   const isDashboardRoute = pathname.startsWith("/dashboard");
   const isprofileRoute = pathname.startsWith("/profile");
   const isPilgrimageRoute = pathname.startsWith("/pilgrimage");
+  const isExploreRoute = pathname.startsWith("/explore");
   if (session && isDashboardRoute) {
     return <DashboardHeader />;
   }
@@ -25,6 +26,10 @@ export default function ConditionalHeader() {
   }
 
   if(session && isPilgrimageRoute){
+    return <DashboardHeader/>;
+  }
+
+  if(session && isExploreRoute){
     return <DashboardHeader/>;
   }
 
