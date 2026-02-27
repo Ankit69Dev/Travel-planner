@@ -11,8 +11,12 @@ import { sendChatMessage } from "@/lib/api/chat";
 import { generateTripPDF } from "@/utils/pdfGenerator";
 import Link from "next/link";
 import VoiceAssistant from "@/components/ui/VoiceAssistant";
-import { getEmergencyContactsAI, getCrowdPredictionAI } from "@/lib/emergencyContacts";
+import {
+  getEmergencyContactsAI,
+  getCrowdPredictionAI,
+} from "@/lib/emergencyContacts";
 import Loader from "@/components/ui/loader";
+import { generateFoodSuggestions } from "@/lib/api/food";
 
 const LocationMap = dynamic(() => import("@/components/ui/LocationMap"), {
   ssr: false,
@@ -28,19 +32,19 @@ export default function Dashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [addingDays, setAddingDays] = useState(false);
-const [extraDays, setExtraDays] = useState(1);
-const [emergencyContacts, setEmergencyContacts] = useState<any>(null);
-const [crowdPrediction, setCrowdPrediction] = useState<any>(null);
-const [loadingEmergency, setLoadingEmergency] = useState(false);
+  const [extraDays, setExtraDays] = useState(1);
+  const [emergencyContacts, setEmergencyContacts] = useState<any>(null);
+  const [crowdPrediction, setCrowdPrediction] = useState<any>(null);
+  const [loadingEmergency, setLoadingEmergency] = useState(false);
   const [selectedStartLocation, setSelectedStartLocation] = useState<any>(null);
   const [selectedDestination, setSelectedDestination] = useState<any>(null);
   const [additionalDestinations, setAdditionalDestinations] = useState<any[]>(
     [],
   );
   const [canAddMore, setCanAddMore] = useState(2);
-const [notifications, setNotifications] = useState<any[]>([]);
-const [notificationOpen, setNotificationOpen] = useState(false);
-const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [tripData, setTripData] = useState<TripData>({
     startLocation: null,
     destination: null,
@@ -61,8 +65,10 @@ const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
-
+const [foodSuggestions, setFoodSuggestions] = useState<any[]>([]);
+const [loadingFood, setLoadingFood] = useState(false);
   const [voiceAssistantOpen, setVoiceAssistantOpen] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -86,63 +92,151 @@ const [loadingNotifications, setLoadingNotifications] = useState(false);
     }
   }, [searchParams]);
 
-  
-useEffect(() => {
-  fetchNotifications();
-}, []);
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
 
-const fetchNotifications = async () => {
-  setLoadingNotifications(true);
-  
-  try {
- 
-    const userLocation = session?.user?.email?.includes("@") 
-      ? "India" 
-      : "India"; 
+  const fetchNotifications = async () => {
+    setLoadingNotifications(true);
 
-    const response = await fetch("/api/notifications", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userLocation }),
-    });
+    try {
+      const userLocation = session?.user?.email?.includes("@")
+        ? "India"
+        : "India";
 
-    const data = await response.json();
+      const response = await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userLocation }),
+      });
 
-    if (data.success && data.notifications) {
-      setNotifications(data.notifications);
+      const data = await response.json();
+
+      if (data.success && data.notifications) {
+        setNotifications(data.notifications);
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    } finally {
+      setLoadingNotifications(false);
     }
-  } catch (error) {
-    console.error("Error fetching notifications:", error);
-  } finally {
-    setLoadingNotifications(false);
-  }
-};
+  };
 
-  
-useEffect(() => {
+  useEffect(() => {
+    if (itinerary) {
+      fetchEmergencyData();
+    }
+  }, [itinerary]);
+
+  const fetchEmergencyData = async () => {
+    if (!itinerary) return;
+
+    setLoadingEmergency(true);
+
+    try {
+      const [contacts, crowd] = await Promise.all([
+        getEmergencyContactsAI(itinerary.destination),
+        getCrowdPredictionAI(
+          itinerary.destination,
+          tripData.startDate,
+          tripData.endDate,
+        ),
+      ]);
+
+      setEmergencyContacts(contacts);
+      setCrowdPrediction(crowd);
+    } catch (error) {
+      console.error("Error fetching emergency data:", error);
+    } finally {
+      setLoadingEmergency(false);
+    }
+  };
+
+  useEffect(() => {
   if (itinerary) {
-    fetchEmergencyData();
+    fetchEmergencyAndFoodData();
   }
 }, [itinerary]);
 
-const fetchEmergencyData = async () => {
+const fetchEmergencyAndFoodData = async () => {
   if (!itinerary) return;
   
   setLoadingEmergency(true);
+  setLoadingFood(true);
   
   try {
- 
-    const [contacts, crowd] = await Promise.all([
+    // Fetch all in parallel
+    const [contacts, crowd, food] = await Promise.all([
       getEmergencyContactsAI(itinerary.destination),
       getCrowdPredictionAI(itinerary.destination, tripData.startDate, tripData.endDate),
+      generateFoodSuggestions(itinerary.destination, tripData.budget),
     ]);
     
     setEmergencyContacts(contacts);
     setCrowdPrediction(crowd);
+    setFoodSuggestions(food);
   } catch (error) {
-    console.error("Error fetching emergency data:", error);
+    console.error("Error fetching data:", error);
   } finally {
     setLoadingEmergency(false);
+    setLoadingFood(false);
+  }
+};
+
+  const detectCurrentLocation = async () => {
+  setDetectingLocation(true);
+  
+  try {
+    // Request geolocation
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      setDetectingLocation(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        // Reverse geocode to get city name
+        try {
+          const response = await fetch(
+            `https://api.geoapify.com/v1/geocode/reverse?lat=${latitude}&lon=${longitude}&apiKey=${process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY}&format=json`
+          );
+          
+          const data = await response.json();
+          
+          if (data.results && data.results.length > 0) {
+            const place = data.results[0];
+            const currentLocation = {
+              name: place.city || place.town || place.village || place.county,
+              displayName: place.formatted,
+              lat: latitude,
+              lng: longitude,
+              country: place.country,
+            };
+            
+            setSelectedStartLocation(currentLocation);
+            setTripData((prev) => ({ ...prev, startLocation: currentLocation }));
+            
+            alert(`Current location detected: ${currentLocation.name}`);
+          }
+        } catch (error) {
+          console.error("Reverse geocoding error:", error);
+          alert("Could not determine location name");
+        }
+        
+        setDetectingLocation(false);
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        alert("Could not detect location. Please enable location access.");
+        setDetectingLocation(false);
+      }
+    );
+  } catch (error) {
+    console.error("Location detection error:", error);
+    setDetectingLocation(false);
   }
 };
 
@@ -191,7 +285,6 @@ const fetchEmergencyData = async () => {
         }
       }
 
-
       if (voiceData.destination) {
         const destResponse = await fetch(
           `https://api.geoapify.com/v1/geocode/search?text=${voiceData.destination}&apiKey=${process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY}&limit=1&format=json`,
@@ -210,7 +303,6 @@ const fetchEmergencyData = async () => {
           setTripData((prev) => ({ ...prev, destination: destLoc }));
         }
       }
-
 
       setTripData((prev) => ({
         ...prev,
@@ -345,7 +437,7 @@ const fetchEmergencyData = async () => {
   if (status === "loading") {
     return (
       <div className="items-center">
-        <Loader/>
+        <Loader />
       </div>
     );
   }
@@ -362,7 +454,7 @@ const fetchEmergencyData = async () => {
             Smart Trip Planner Powered by AI
           </p>
         </div>
-        {/* AI Voice Assistant Button - NEW */}
+        {/* AI Voice Assistant Button */}
         <div className="mb-10">
           <button
             onClick={() => setVoiceAssistantOpen(true)}
@@ -396,11 +488,9 @@ const fetchEmergencyData = async () => {
                 </h3>
                 <div className="space-y-1">
                   <p className="text-white/90 text-lg font-medium">
-                    
                     <span className="font-bold">Just say it. AI plans it.</span>
                   </p>
                   <p className="text-white/90 text-lg font-medium">
-                    
                     <span className="font-bold">
                       बस बोलिए। AI योजना बना देगा।
                     </span>
@@ -411,12 +501,12 @@ const fetchEmergencyData = async () => {
           </button>
         </div>
         {/* Voice Assistant Modal */}
-              {voiceAssistantOpen && (
-                <VoiceAssistant
-                  onTripDataExtracted={handleVoiceDataExtracted}
-                  onClose={() => setVoiceAssistantOpen(false)}
-                />
-              )}
+        {voiceAssistantOpen && (
+          <VoiceAssistant
+            onTripDataExtracted={handleVoiceDataExtracted}
+            onClose={() => setVoiceAssistantOpen(false)}
+          />
+        )}
         {/* Title Section */}
         <div className="mb-10">
           <h1 className="text-3xl font-bold text-purple-500">
@@ -428,22 +518,44 @@ const fetchEmergencyData = async () => {
           </h3>
         </div>
 
-        {/* Form and Map Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Left - Form */}
           <div className="space-y-6">
             {/* Start Location */}
-            <div className="backdrop-blur-md rounded-2xl border border-purple-500/50 p-6 relative z-[60]">
-              <label className="block text-purple-300 font-semibold mb-3">
-                Starting Point *
-              </label>
-              <LocationSearch
-                key={`start-${selectedStartLocation?.name || "empty"}`}
-                onLocationSelect={handleStartLocationSelect}
-                placeholder="Where are you starting from?"
-                value={selectedStartLocation?.name || ""}
-              />
-            </div>
+<div className="backdrop-blur-md rounded-2xl border border-purple-500/50 p-6 relative z-[60]">
+  <div className="flex items-center justify-between mb-3">
+    <label className="block text-purple-300 font-semibold">
+      Starting Point *
+    </label>
+    <button
+      onClick={detectCurrentLocation}
+      disabled={detectingLocation}
+      className="flex items-center gap-2 cursor-pointer px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-all disabled:opacity-50"
+      title="Use current location"
+    >
+      {detectingLocation ? (
+        <>
+          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          <span>Detecting...</span>
+        </>
+      ) : (
+        <>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span>Current Location</span>
+        </>
+      )}
+    </button>
+  </div>
+  <LocationSearch
+    key={`start-${selectedStartLocation?.name || 'empty'}`}
+    onLocationSelect={handleStartLocationSelect}
+    placeholder="Where are you starting from?"
+    value={selectedStartLocation?.name || ""}
+  />
+</div>
 
             {/* Destination */}
             <div className="backdrop-blur-md rounded-2xl border border-purple-500/50 p-6 relative z-[50]">
@@ -459,52 +571,77 @@ const fetchEmergencyData = async () => {
             </div>
 
             {/* Additional Destinations */}
-{additionalDestinations.map((dest, index) => (
-  <div key={index} className="backdrop-blur-md rounded-2xl border border-purple-500/50 p-6 relative z-[45]">
-    <div className="flex items-center justify-between mb-3">
-      <label className="block text-purple-300 font-semibold">
-        Additional Destination {index + 1}
-      </label>
-      <button
-        onClick={() => {
-          setAdditionalDestinations(additionalDestinations.filter((_, i) => i !== index));
-          setCanAddMore(canAddMore + 1);
-        }}
-        className="text-red-400 hover:text-red-300"
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-    </div>
-    <LocationSearch
-      key={`additional-${index}-${dest?.name || 'empty'}`}
-      onLocationSelect={(location) => {
-        const newDests = [...additionalDestinations];
-        newDests[index] = location;
-        setAdditionalDestinations(newDests);
-      }}
-      placeholder="Add another destination"
-      value={dest?.name || ""}
-    />
-  </div>
-))}
+            {additionalDestinations.map((dest, index) => (
+              <div
+                key={index}
+                className="backdrop-blur-md rounded-2xl border border-purple-500/50 p-6 relative z-[45]"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-purple-300 font-semibold">
+                    Additional Destination {index + 1}
+                  </label>
+                  <button
+                    onClick={() => {
+                      setAdditionalDestinations(
+                        additionalDestinations.filter((_, i) => i !== index),
+                      );
+                      setCanAddMore(canAddMore + 1);
+                    }}
+                    className="text-red-400 hover:text-red-300"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <LocationSearch
+                  key={`additional-${index}-${dest?.name || "empty"}`}
+                  onLocationSelect={(location) => {
+                    const newDests = [...additionalDestinations];
+                    newDests[index] = location;
+                    setAdditionalDestinations(newDests);
+                  }}
+                  placeholder="Add another destination"
+                  value={dest?.name || ""}
+                />
+              </div>
+            ))}
 
-{/* Add Destination Button */}
-{canAddMore > 0 && (
-  <button
-    onClick={() => {
-      setAdditionalDestinations([...additionalDestinations, null]);
-      setCanAddMore(canAddMore - 1);
-    }}
-    className="w-full py-3 border-2 border-dashed border-purple-500/50 rounded-xl text-purple-300 hover:border-purple-500 hover:bg-purple-500/10 transition-all flex items-center justify-center gap-2"
-  >
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-    </svg>
-    Add Destination ({canAddMore} remaining)
-  </button>
-)}
+            {/* Add Destination Button */}
+            {canAddMore > 0 && (
+              <button
+                onClick={() => {
+                  setAdditionalDestinations([...additionalDestinations, null]);
+                  setCanAddMore(canAddMore - 1);
+                }}
+                className="w-full py-3 border-2 border-dashed border-purple-500/50 rounded-xl text-purple-300 hover:border-purple-500 hover:bg-purple-500/10 transition-all flex items-center justify-center gap-2"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                Add Destination ({canAddMore} remaining)
+              </button>
+            )}
 
             {/* Dates */}
             <div className="backdrop-blur-md rounded-2xl border border-purple-500/50 p-6 relative z-[40]">
@@ -739,8 +876,6 @@ const fetchEmergencyData = async () => {
                 </button>
               </div>
             </div>
-
-            
 
             {/* Trip Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -1079,163 +1214,263 @@ const fetchEmergencyData = async () => {
               </div>
             )}
 
-            {/* Crowd Predictor & Emergency Contacts - AI POWERED */}
-{loadingEmergency ? (
-  <div className="bg-white/5 rounded-xl p-8 mb-8 text-center">
-    <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-    <p className="text-white">Loading emergency info and crowd predictions...</p>
-  </div>
-) : (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-    {/* Crowd Predictor - AI POWERED */}
-    {crowdPrediction && (
-      <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-xl p-6 border border-yellow-500/30">
-        <h3 className="text-xl font-bold text-yellow-300 mb-4 flex items-center gap-2">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-          AI Crowd Prediction
-        </h3>
-        
-        <div className="bg-white/5 rounded-lg p-4 mb-4">
-          <p className="text-2xl font-bold text-white mb-2">
-            {crowdPrediction.level}
-          </p>
-          <p className="text-gray-300 text-sm mb-3">
-            {crowdPrediction.description}
-          </p>
-          
-          {crowdPrediction.festivals && crowdPrediction.festivals.length > 0 && (
-            <div className="mt-3 bg-orange-500/20 rounded-lg p-3">
-              <p className="text-orange-300 font-semibold text-sm mb-2">🎉 Festivals/Events:</p>
-              <ul className="text-white text-sm space-y-1">
-                {crowdPrediction.festivals.map((festival: string, idx: number) => (
-                  <li key={idx}>• {festival}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
+            {/* Food Suggestions - NEW */}
+{foodSuggestions.length > 0 && (
+  <div className="mb-8">
+    <h3 className="text-2xl font-bold text-purple-300 mb-4 flex items-center gap-2">
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+      </svg>
+      Must-Try Local Food
+    </h3>
 
-        <div className="bg-white/5 rounded-lg p-3">
-          <p className="text-gray-400 text-xs mb-1">💡 Travel Tip:</p>
-          <p className="text-white text-sm">{crowdPrediction.tips}</p>
-        </div>
-
-        {crowdPrediction.bestTimeToVisit && (
-          <div className="mt-3 bg-white/5 rounded-lg p-3">
-            <p className="text-gray-400 text-xs mb-1">⏰ Best Time to Visit:</p>
-            <p className="text-white text-sm">{crowdPrediction.bestTimeToVisit}</p>
-          </div>
-        )}
+    {loadingFood ? (
+      <div className="text-center py-8">
+        <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-gray-400">Loading food suggestions...</p>
       </div>
-    )}
+    ) : (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {foodSuggestions.map((food, idx) => (
+          <div
+            key={idx}
+            className="bg-white/5 rounded-xl p-5 border border-purple-500/30 hover:border-purple-500/60 transition-all"
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex-1">
+                <h4 className="text-white font-bold text-lg mb-1">{food.name}</h4>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs px-2 py-1 bg-orange-500/20 text-orange-300 rounded-full">
+                    {food.type}
+                  </span>
+                  {food.vegetarian && (
+                    <span className="text-xs px-2 py-1 bg-green-500/20 text-green-300 rounded-full">
+                      🥬 Veg
+                    </span>
+                  )}
+                  {food.mustTry && (
+                    <span className="text-xs px-2 py-1 bg-yellow-500/20 text-yellow-300 rounded-full">
+                      ⭐ Must Try
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
 
-    {/* Emergency Contacts - AI POWERED */}
-    {emergencyContacts && (
-      <div className="bg-gradient-to-r from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-500/30">
-        <h3 className="text-xl font-bold text-red-300 mb-4 flex items-center gap-2">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-          </svg>
-          AI-Generated Emergency Contacts
-        </h3>
-        
-        <div className="space-y-3">
-          {emergencyContacts.police && (
-            <div className="flex justify-between items-center bg-white/5 rounded-lg p-3 hover:bg-white/10 transition-colors">
-              <span className="text-gray-300 flex items-center gap-2">
-                🚨 Police
-              </span>
-              <a 
-                href={`tel:${emergencyContacts.police}`} 
-                className="text-white font-bold hover:text-red-300 transition-colors"
-              >
-                {emergencyContacts.police}
-              </a>
-            </div>
-          )}
-          
-          {emergencyContacts.ambulance && (
-            <div className="flex justify-between items-center bg-white/5 rounded-lg p-3 hover:bg-white/10 transition-colors">
-              <span className="text-gray-300 flex items-center gap-2">
-                🚑 Ambulance
-              </span>
-              <a 
-                href={`tel:${emergencyContacts.ambulance}`} 
-                className="text-white font-bold hover:text-red-300 transition-colors"
-              >
-                {emergencyContacts.ambulance}
-              </a>
-            </div>
-          )}
-          
-          {emergencyContacts.fire && (
-            <div className="flex justify-between items-center bg-white/5 rounded-lg p-3 hover:bg-white/10 transition-colors">
-              <span className="text-gray-300 flex items-center gap-2">
-                🚒 Fire
-              </span>
-              <a 
-                href={`tel:${emergencyContacts.fire}`} 
-                className="text-white font-bold hover:text-red-300 transition-colors"
-              >
-                {emergencyContacts.fire}
-              </a>
-            </div>
-          )}
-          
-          {emergencyContacts.tourist && (
-            <div className="flex justify-between items-center bg-white/5 rounded-lg p-3 hover:bg-white/10 transition-colors">
-              <span className="text-gray-300 flex items-center gap-2">
-                ℹ️ Tourist Helpline
-              </span>
-              <a 
-                href={`tel:${emergencyContacts.tourist}`} 
-                className="text-white font-bold hover:text-red-300 transition-colors"
-              >
-                {emergencyContacts.tourist}
-              </a>
-            </div>
-          )}
+            <p className="text-gray-300 text-sm mb-3 leading-relaxed">
+              {food.description}
+            </p>
 
-          {emergencyContacts.localPolice && (
-            <div className="flex justify-between items-center bg-white/5 rounded-lg p-3 hover:bg-white/10 transition-colors">
-              <span className="text-gray-300 flex items-center gap-2">
-                🏛️ Local Police
-              </span>
-              <a 
-                href={`tel:${emergencyContacts.localPolice}`} 
-                className="text-white font-bold hover:text-red-300 transition-colors"
-              >
-                {emergencyContacts.localPolice}
-              </a>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400">💰 Price:</span>
+                <span className="text-green-400 font-semibold">{food.priceRange}</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-gray-400">📍</span>
+                <span className="text-purple-300 text-xs">{food.location}</span>
+              </div>
             </div>
-          )}
-
-          {emergencyContacts.hospital && (
-            <div className="flex justify-between items-center bg-white/5 rounded-lg p-3 hover:bg-white/10 transition-colors">
-              <span className="text-gray-300 flex items-center gap-2">
-                🏥 Hospital
-              </span>
-              <a 
-                href={`tel:${emergencyContacts.hospital}`} 
-                className="text-white font-bold hover:text-red-300 transition-colors"
-              >
-                {emergencyContacts.hospital}
-              </a>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-4 bg-red-500/20 rounded-lg p-3">
-          <p className="text-red-200 text-xs">
-            ⚠️ Save these numbers before your trip. In case of emergency, dial immediately.
-          </p>
-        </div>
+          </div>
+        ))}
       </div>
     )}
   </div>
 )}
+
+            {/* Crowd Predictor & Emergency Contacts - AI POWERED */}
+            {loadingEmergency ? (
+              <div className="bg-white/5 rounded-xl p-8 mb-8 text-center">
+                <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-white">
+                  Loading emergency info and crowd predictions...
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                {/* Crowd Predictor - AI POWERED */}
+                {crowdPrediction && (
+                  <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-xl p-6 border border-yellow-500/30">
+                    <h3 className="text-xl font-bold text-yellow-300 mb-4 flex items-center gap-2">
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                        />
+                      </svg>
+                      AI Crowd Prediction
+                    </h3>
+
+                    <div className="bg-white/5 rounded-lg p-4 mb-4">
+                      <p className="text-2xl font-bold text-white mb-2">
+                        {crowdPrediction.level}
+                      </p>
+                      <p className="text-gray-300 text-sm mb-3">
+                        {crowdPrediction.description}
+                      </p>
+
+                      {crowdPrediction.festivals &&
+                        crowdPrediction.festivals.length > 0 && (
+                          <div className="mt-3 bg-orange-500/20 rounded-lg p-3">
+                            <p className="text-orange-300 font-semibold text-sm mb-2">
+                              🎉 Festivals/Events:
+                            </p>
+                            <ul className="text-white text-sm space-y-1">
+                              {crowdPrediction.festivals.map(
+                                (festival: string, idx: number) => (
+                                  <li key={idx}>• {festival}</li>
+                                ),
+                              )}
+                            </ul>
+                          </div>
+                        )}
+                    </div>
+
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <p className="text-gray-400 text-xs mb-1">
+                        💡 Travel Tip:
+                      </p>
+                      <p className="text-white text-sm">
+                        {crowdPrediction.tips}
+                      </p>
+                    </div>
+
+                    {crowdPrediction.bestTimeToVisit && (
+                      <div className="mt-3 bg-white/5 rounded-lg p-3">
+                        <p className="text-gray-400 text-xs mb-1">
+                          ⏰ Best Time to Visit:
+                        </p>
+                        <p className="text-white text-sm">
+                          {crowdPrediction.bestTimeToVisit}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Emergency Contacts - AI POWERED */}
+                {emergencyContacts && (
+                  <div className="bg-gradient-to-r from-red-500/10 to-pink-500/10 rounded-xl p-6 border border-red-500/30">
+                    <h3 className="text-xl font-bold text-red-300 mb-4 flex items-center gap-2">
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                        />
+                      </svg>
+                      AI-Generated Emergency Contacts
+                    </h3>
+
+                    <div className="space-y-3">
+                      {emergencyContacts.police && (
+                        <div className="flex justify-between items-center bg-white/5 rounded-lg p-3 hover:bg-white/10 transition-colors">
+                          <span className="text-gray-300 flex items-center gap-2">
+                            🚨 Police
+                          </span>
+                          <a
+                            href={`tel:${emergencyContacts.police}`}
+                            className="text-white font-bold hover:text-red-300 transition-colors"
+                          >
+                            {emergencyContacts.police}
+                          </a>
+                        </div>
+                      )}
+
+                      {emergencyContacts.ambulance && (
+                        <div className="flex justify-between items-center bg-white/5 rounded-lg p-3 hover:bg-white/10 transition-colors">
+                          <span className="text-gray-300 flex items-center gap-2">
+                            🚑 Ambulance
+                          </span>
+                          <a
+                            href={`tel:${emergencyContacts.ambulance}`}
+                            className="text-white font-bold hover:text-red-300 transition-colors"
+                          >
+                            {emergencyContacts.ambulance}
+                          </a>
+                        </div>
+                      )}
+
+                      {emergencyContacts.fire && (
+                        <div className="flex justify-between items-center bg-white/5 rounded-lg p-3 hover:bg-white/10 transition-colors">
+                          <span className="text-gray-300 flex items-center gap-2">
+                            🚒 Fire
+                          </span>
+                          <a
+                            href={`tel:${emergencyContacts.fire}`}
+                            className="text-white font-bold hover:text-red-300 transition-colors"
+                          >
+                            {emergencyContacts.fire}
+                          </a>
+                        </div>
+                      )}
+
+                      {emergencyContacts.tourist && (
+                        <div className="flex justify-between items-center bg-white/5 rounded-lg p-3 hover:bg-white/10 transition-colors">
+                          <span className="text-gray-300 flex items-center gap-2">
+                            ℹ️ Tourist Helpline
+                          </span>
+                          <a
+                            href={`tel:${emergencyContacts.tourist}`}
+                            className="text-white font-bold hover:text-red-300 transition-colors"
+                          >
+                            {emergencyContacts.tourist}
+                          </a>
+                        </div>
+                      )}
+
+                      {emergencyContacts.localPolice && (
+                        <div className="flex justify-between items-center bg-white/5 rounded-lg p-3 hover:bg-white/10 transition-colors">
+                          <span className="text-gray-300 flex items-center gap-2">
+                            🏛️ Local Police
+                          </span>
+                          <a
+                            href={`tel:${emergencyContacts.localPolice}`}
+                            className="text-white font-bold hover:text-red-300 transition-colors"
+                          >
+                            {emergencyContacts.localPolice}
+                          </a>
+                        </div>
+                      )}
+
+                      {emergencyContacts.hospital && (
+                        <div className="flex justify-between items-center bg-white/5 rounded-lg p-3 hover:bg-white/10 transition-colors">
+                          <span className="text-gray-300 flex items-center gap-2">
+                            🏥 Hospital
+                          </span>
+                          <a
+                            href={`tel:${emergencyContacts.hospital}`}
+                            className="text-white font-bold hover:text-red-300 transition-colors"
+                          >
+                            {emergencyContacts.hospital}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-4 bg-red-500/20 rounded-lg p-3">
+                      <p className="text-red-200 text-xs">
+                        ⚠️ Save these numbers before your trip. In case of
+                        emergency, dial immediately.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Daily Itinerary */}
             <div className="space-y-6">
@@ -1285,84 +1520,115 @@ const fetchEmergencyData = async () => {
                 </div>
               ))}
               {/* Add Extra Days - NEW */}
-<div className="mt-8 bg-purple-500/10 rounded-xl p-6 border border-purple-500/30">
-  <h4 className="text-white font-bold text-lg mb-4">Want to extend your trip?</h4>
-  
-  {!addingDays ? (
-    <button
-      onClick={() => setAddingDays(true)}
-      className="px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all flex items-center gap-2"
-    >
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-      </svg>
-      Add More Days
-    </button>
-  ) : (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <label className="text-white">Number of extra days:</label>
-        <input
-          type="number"
-          min="1"
-          max="7"
-          value={extraDays}
-          onChange={(e) => setExtraDays(parseInt(e.target.value) || 1)}
-          className="w-20 px-4 py-2 bg-white/10 border border-purple-500/30 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-        />
-      </div>
-      
-      <div className="flex gap-3">
-        <button
-          onClick={async () => {
-            // Generate extra days
-            const lastDay = itinerary.days[itinerary.days.length - 1];
-            const lastDate = new Date(lastDay.date);
-            
-            const newDays = [];
-            for (let i = 1; i <= extraDays; i++) {
-              const newDate = new Date(lastDate);
-              newDate.setDate(newDate.getDate() + i);
-              
-              newDays.push({
-                day: itinerary.days.length + i,
-                date: newDate.toLocaleDateString(),
-                activities: [
-                  { time: "09:00 AM", activity: `Explore more of ${itinerary.destination}`, cost: "₹500" },
-                  { time: "12:00 PM", activity: "Lunch at local restaurant", cost: "₹400" },
-                  { time: "03:00 PM", activity: "Visit nearby attractions", cost: "₹300" },
-                  { time: "07:00 PM", activity: "Dinner and relaxation", cost: "₹600" },
-                ],
-              });
-            }
-            
-            setItinerary({
-              ...itinerary,
-              days: [...itinerary.days, ...newDays],
-            });
-            
-            setAddingDays(false);
-            alert(`${extraDays} day(s) added successfully!`);
-          }}
-          className="px-6 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all"
-        >
-          Confirm
-        </button>
-        <button
-          onClick={() => setAddingDays(false)}
-          className="px-6 py-2 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-all"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  )}
-</div>
+              <div className="mt-8 bg-purple-500/10 rounded-xl p-6 border border-purple-500/30">
+                <h4 className="text-white font-bold text-lg mb-4">
+                  Want to extend your trip?
+                </h4>
+
+                {!addingDays ? (
+                  <button
+                    onClick={() => setAddingDays(true)}
+                    className="px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all flex items-center gap-2"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                    Add More Days
+                  </button>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <label className="text-white">
+                        Number of extra days:
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="7"
+                        value={extraDays}
+                        onChange={(e) =>
+                          setExtraDays(parseInt(e.target.value) || 1)
+                        }
+                        className="w-20 px-4 py-2 bg-white/10 border border-purple-500/30 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={async () => {
+                          // Generate extra days
+                          const lastDay =
+                            itinerary.days[itinerary.days.length - 1];
+                          const lastDate = new Date(lastDay.date);
+
+                          const newDays = [];
+                          for (let i = 1; i <= extraDays; i++) {
+                            const newDate = new Date(lastDate);
+                            newDate.setDate(newDate.getDate() + i);
+
+                            newDays.push({
+                              day: itinerary.days.length + i,
+                              date: newDate.toLocaleDateString(),
+                              activities: [
+                                {
+                                  time: "09:00 AM",
+                                  activity: `Explore more of ${itinerary.destination}`,
+                                  cost: "₹500",
+                                },
+                                {
+                                  time: "12:00 PM",
+                                  activity: "Lunch at local restaurant",
+                                  cost: "₹400",
+                                },
+                                {
+                                  time: "03:00 PM",
+                                  activity: "Visit nearby attractions",
+                                  cost: "₹300",
+                                },
+                                {
+                                  time: "07:00 PM",
+                                  activity: "Dinner and relaxation",
+                                  cost: "₹600",
+                                },
+                              ],
+                            });
+                          }
+
+                          setItinerary({
+                            ...itinerary,
+                            days: [...itinerary.days, ...newDays],
+                          });
+
+                          setAddingDays(false);
+                          alert(`${extraDays} day(s) added successfully!`);
+                        }}
+                        className="px-6 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all"
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        onClick={() => setAddingDays(false)}
+                        className="px-6 py-2 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-all"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
-
-        
 
         {/* Chat Button */}
         <button

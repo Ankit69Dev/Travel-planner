@@ -6,10 +6,14 @@ import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { Button } from "@/components/ui/buttonprimary";
 import { useState, useEffect } from "react";
+
 const menuOptions = [
   { name: "Dashboard", path: "/dashboard" },
-  { name: "Pilgrimage", path: "/pil" },
-  { name: "Profile", path: "/pro" }
+  { name: "Pilgrimage", path: "/pilgrimage" },
+  { name: "Location Finder", path: "/locationfinder"},
+  { name: "Profile", path: "/profile" }
+  
+
 ];
 
 export default function DashboardHeader() {
@@ -51,13 +55,13 @@ useEffect(() => {
   return (
     <header className="w-full text-white px-8 py-4 flex justify-between items-center">
       {/* Logo */}
-            <div className="flex gap-3 items-center cursor-pointer">
+            <Link href={"/"}><div className="flex gap-3 items-center cursor-pointer">
               <Image src="logo.svg" alt="logo" width={25} height={25} />
               <h2 className="font-bold text-2xl hover:text-purple-500 cursor-pointer">
                 Smart Trip Planner
               </h2>
             </div>
-
+            </Link>
             <div className="flex gap-8 mr-80">
         {menuOptions.map((menu) => (
           <Link

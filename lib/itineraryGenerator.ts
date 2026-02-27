@@ -22,7 +22,6 @@ export async function generateCompleteItinerary(tripData: TripData) {
 
   const transportDetails = await generateTransportDetails(tripData);
 
-  // Only generate railway recommendations if transport is Train
   let railways = [];
   if (tripData.transport === "Train") {
     railways = await generateRailwayRecommendations(
