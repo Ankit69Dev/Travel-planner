@@ -1,7 +1,7 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import ConditionalHeader from "@/app/ConditionalHeader";
+import ConditionalHeader from "@/components/ui/ConditionalHeader";
 
 function ClientProvider({
   children,

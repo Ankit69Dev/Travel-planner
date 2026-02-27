@@ -8,8 +8,10 @@ import AuthModal from "@/app/api/auth/[...nextauth]/authcard";
 
 const menuOptions = [
   { name: "Home", path: "/" },
-  { name: "About", path: "/about" },
+  { name: "About", path: "#about" },
+  { name: "Our Team", path: "#ourteam"}
 ];
+
 
 function Header() {
   const [openAuth, setOpenAuth] = useState(false);
@@ -20,9 +22,10 @@ function Header() {
 
       <div className="flex gap-3 items-center cursor-pointer">
         <Image src="logo.svg" alt="logo" width={25} height={25} />
-        <h2 className="font-bold text-2xl hover:text-purple-500 cursor-pointer">
+        <Link href={"/"}><h2 className="font-bold text-2xl hover:text-purple-500 cursor-pointer">
           Smart Trip Planner
         </h2>
+        </Link>
       </div>
 
       {/* Menu Options */}
@@ -61,6 +64,8 @@ function Header() {
         Sign In
       </Button>
     </div>
+
+    
   );
 }
 
