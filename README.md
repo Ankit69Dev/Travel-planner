@@ -1,36 +1,159 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+🌍 AI Smart Trip Planner
 
-## Getting Started
+An intelligent, AI-powered travel planning platform that helps users design personalized trips, generate smart itineraries, explore destinations, and receive pilgrimage suggestions tailored to every religion all in one seamless experience.
 
-First, run the development server:
+🚀 Features
+🏠 Homepage
 
-```bash
+Modern, responsive landing page
+
+Voice-enabled AI assistant
+
+Smart trip planning introduction
+
+Call-to-action for dashboard access
+
+
+📊 Dashboard
+
+The central hub for managing travel experiences.
+
+✨ Travel Preferences
+
+Budget selection
+
+Travel dates
+
+Transportation choice
+
+Number of travelers
+
+Trip type (Adventure, Relaxation, Pilgrimage, etc.)
+
+🗺️ Smart Itinerary Display
+
+AI-generated day wise trip plan
+
+Optimized route suggestions
+
+Interactive map view
+
+Budget breakdown
+
+Downloadable PDF option
+
+
+🛕 Pilgrimage Suggestions (All Religions)
+
+AI suggests pilgrimage destinations based on user's religion and preferences.
+
+Includes recommendations for:
+
+Hindu
+
+Muslim
+
+Christian
+
+Sikh
+
+Buddhist
+
+Jain
+
+And more
+
+🌎 Explore Section
+
+Advanced exploration with smart filters:
+
+Location
+
+Budget range
+
+Trip duration
+
+Travel type
+
+Rating
+
+Weather conditions
+
+Integrated with interactive maps for real-time location discovery.
+
+👤 Profile & Gamification
+
+A personalized profile system with:
+
+🎖 Gamified badges
+
+🧠 Travel insights
+
+📈 Trip analytics
+
+🌟 Achievement tracking
+
+🗺 Travel history timeline
+
+🎤 AI-Powered Capabilities
+
+🎙 Voice-based trip planning using Deepgram AI
+
+🧠 Smart itinerary generation using Groq AI API
+
+🗺 Location & geocoding powered by OpenStreetMap
+
+🛠️ Tech Stack
+Frontend
+
+TypeScript
+
+React
+
+Next.js
+
+Tailwind CSS
+
+Backend
+
+Node.js
+
+PostgreSQL
+
+Prisma ORM
+
+NextAuth Authentication
+
+AI & APIs
+
+Deepgram AI API – Speech-to-Text
+
+Groq AI API – AI itinerary & reasoning
+
+OpenStreetMap API – Maps & geolocation
+
+🔐 Authentication
+
+Secure authentication powered by:
+
+NextAuth
+
+OAuth Providers
+
+Session-based auth
+
+Protected dashboards
+
+🌐 Deployment
+
+Vercel
+
+PostgreSQL (Neon / Cloud DB)
+
+Environment-based configuration
+
+📦 Installation
+git clone https://github.com/Ankit69Dev/Travel-planner.git
+cd smart-trip-planner
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
