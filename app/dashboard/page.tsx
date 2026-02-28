@@ -154,6 +154,23 @@ const [loadingFood, setLoadingFood] = useState(false);
   };
 
   useEffect(() => {
+  const mode = searchParams.get("mode");
+  if (mode === "explore") {
+    const storedDestination = sessionStorage.getItem("Exploration");
+    if (storedDestination) {
+      try {
+        const destination = JSON.parse(storedDestination);
+        setSelectedDestination(destination);
+        setTripData((prev) => ({ ...prev, destination }));
+        sessionStorage.removeItem("Exploration");
+      } catch (error) {
+        console.error("Error parsing exploration:", error);
+      }
+    }
+  }
+}, [searchParams]);
+
+  useEffect(() => {
   if (itinerary) {
     fetchEmergencyAndFoodData();
   }

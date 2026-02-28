@@ -487,19 +487,16 @@ export default function TravelExplore() {
       : travelPlaces.filter((p) => p.category === selectedCategory);
 
   const planTrip = (place: any) => {
-    sessionStorage.setItem(
-      "travelDestination",
-      JSON.stringify({
-        name: place.location.split(",")[0].trim(),
-        displayName: place.location,
-        lat: place.lat,
-        lng: place.lng,
-        country: "India",
-        category: place.category,
-      })
-    );
-    router.push("/dashboard?mode=travel");
-  };
+  sessionStorage.setItem("pilgrimageDestination", JSON.stringify({
+    name: place.location.split(",")[0].trim(),
+    displayName: place.location,
+    lat: place.lat,
+    lng: place.lng,
+    country: "India",
+  }));
+  
+  router.push("/dashboard?mode=explore");
+};
 
   if (status === "loading") {
     return (
