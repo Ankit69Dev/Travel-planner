@@ -10,10 +10,9 @@ import { useState, useEffect } from "react";
 const menuOptions = [
   { name: "Dashboard", path: "/dashboard" },
   { name: "Pilgrimage", path: "/pilgrimage" },
-  { name: "Location Finder", path: "/locationfinder"},
-  { name: "Profile", path: "/profile" },
   { name: "Explore", path: "/explore" },
-
+  { name: "Location Finder", path: "/locationfinder"},
+  { name: "Profile", path: "/profile" }
 ];
 
 export default function DashboardHeader() {

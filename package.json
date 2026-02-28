@@ -21,6 +21,7 @@
     "@splinetool/react-spline": "^4.1.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "exif-js": "^2.3.0",
     "groq-sdk": "^0.37.0",
     "gsap": "^3.14.2",
     "jspdf": "^4.1.0",

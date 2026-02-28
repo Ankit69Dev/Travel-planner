@@ -17,6 +17,7 @@ import {
 } from "@/lib/emergencyContacts";
 import Loader from "@/components/ui/loader";
 import { generateFoodSuggestions } from "@/lib/api/food";
+import { Button } from "@/components/ui/buttonprimary";
 
 const LocationMap = dynamic(() => import("@/components/ui/LocationMap"), {
   ssr: false,
@@ -458,7 +459,7 @@ const fetchEmergencyAndFoodData = async () => {
         <div className="mb-10">
           <button
             onClick={() => setVoiceAssistantOpen(true)}
-            className="w-full bg-gradient-to-r from-orange-500 via-pink-500 to-purple-600 hover:from-orange-600 hover:via-pink-600 hover:to-purple-700 rounded-2xl p-8 shadow-2xl transition-all transform hover:scale-[1.02] border-2 border-white/20"
+            className="w-full cursor-pointer bg-gradient-to-r from-purple-900 via-purple-500 to-purple-900  hover:from-purple-900 hover:to-purple-900 transition-all rounded-2xl p-3 shadow-2xl  border-2 border-white/20"
           >
             <div className="flex items-center justify-center gap-6">
               {/* Mic Icon */}
@@ -695,7 +696,7 @@ const fetchEmergencyAndFoodData = async () => {
                     onClick={() =>
                       setTripData({ ...tripData, travelers: option })
                     }
-                    className={`py-3 rounded-xl font-medium transition-all ${
+                    className={`py-3 rounded-xl cursor-pointer font-medium transition-all ${
                       tripData.travelers === option
                         ? "bg-purple-600 text-white"
                         : "bg-white/10 text-gray-300 hover:bg-white/20"
@@ -717,7 +718,7 @@ const fetchEmergencyAndFoodData = async () => {
                   <button
                     key={option}
                     onClick={() => setTripData({ ...tripData, budget: option })}
-                    className={`py-3 rounded-xl font-medium transition-all ${
+                    className={`py-3 rounded-xl cursor-pointer font-medium transition-all ${
                       tripData.budget === option
                         ? "bg-purple-600 text-white"
                         : "bg-white/10 text-gray-300 hover:bg-white/20"
@@ -741,7 +742,7 @@ const fetchEmergencyAndFoodData = async () => {
                     onClick={() =>
                       setTripData({ ...tripData, transport: option })
                     }
-                    className={`py-3 rounded-xl font-medium transition-all ${
+                    className={`py-3 rounded-xl cursor-pointer font-medium transition-all ${
                       tripData.transport === option
                         ? "bg-purple-600 text-white"
                         : "bg-white/10 text-gray-300 hover:bg-white/20"
@@ -757,7 +758,7 @@ const fetchEmergencyAndFoodData = async () => {
             <button
               onClick={generateItinerary}
               disabled={generating}
-              className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 relative z-[5]"
+              className="w-full py-4 cursor-pointer bg-gradient-to-r from-purple-800 to-purple-600 text-white font-bold rounded-xl hover:from-purple-900 hover:to-purple-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 relative z-[5]"
             >
               {generating ? (
                 <>
@@ -772,7 +773,7 @@ const fetchEmergencyAndFoodData = async () => {
             {/* Clear & Refresh Button */}
             <button
               onClick={clearAndRefresh}
-              className="w-full py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-all flex items-center justify-center gap-2 relative z-[5]"
+              className="w-full py-3 cursor-pointer bg-red-600 text-white font-semibold rounded-xl hover:bg-red-800 transition-all flex items-center justify-center gap-2 relative z-[5]"
             >
               <svg
                 className="w-5 h-5"
@@ -1214,7 +1215,7 @@ const fetchEmergencyAndFoodData = async () => {
               </div>
             )}
 
-            {/* Food Suggestions - NEW */}
+            {/* Food Suggestions */}
 {foodSuggestions.length > 0 && (
   <div className="mb-8">
     <h3 className="text-2xl font-bold text-purple-300 mb-4 flex items-center gap-2">

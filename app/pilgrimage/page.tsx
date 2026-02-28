@@ -142,7 +142,7 @@ export default function Pilgrimage() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => planTrip(place)}
-                    className="flex-1 cursor-pointer py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all"
+                    className="flex-1 cursor-pointer py-3 bg-gradient-to-r from-purple-800 to-purple-600 text-white font-semibold rounded-xl hover:from-purple-900 hover:to-purple-900 transition-all"
                   >
                     Plan Trip
                   </button>
